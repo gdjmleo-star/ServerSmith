@@ -58,14 +58,6 @@ func main() {
 			api.HandleServerRebootTasks(w, r)
 			return
 		}
-		if len(path) > len("/api/servers/")+1 && strings.HasSuffix(path, "/install-agent") {
-			api.HandleAgentInstall(w, r)
-			return
-		}
-		if len(path) > len("/api/servers/")+1 && strings.HasSuffix(path, "/pubkey-cmd") {
-			api.HandleGetPublicKeyForServer(w, r)
-			return
-		}
 		api.HandleServerByID(w, r)
 	}))
 	mux.HandleFunc("/api/dashboard", api.RequireAuth(api.HandleDashboard))
@@ -81,8 +73,15 @@ func main() {
 	mux.HandleFunc("/api/alert-configs", api.RequireAuth(api.HandleAlertConfigs))
 	mux.HandleFunc("/api/backup", api.RequireAuth(api.HandleBackup))
 	mux.HandleFunc("/api/ssh-key", api.RequireAuth(api.HandleSSHKey))
-	// Agent binary download (public, 需要知道路径才能访问)
-	mux.HandleFunc("/agent/", api.HandleAgentBinary)
+	// Agent 下载接口 (public): 二进制 + 安装脚本
+	mux.HandleFunc("/agent/", func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Path[len("/agent/"):]
+		if name == "install.sh" || name == "install.ps1" {
+			api.HandleAgentInstallScript(w, r)
+		} else {
+			api.HandleAgentBinary(w, r)
+		}
+	})
 
 	// CORS
 	handler := api.CORSMiddleware(mux)

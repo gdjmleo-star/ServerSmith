@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-//go:embed web-out/*
+//go:embed all:web-out
 var webFS embed.FS
 
 func webHandler() http.Handler {

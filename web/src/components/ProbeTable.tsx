@@ -27,8 +27,8 @@ function PubkeyCmdModal({ serverId, onClose }: { serverId: number; onClose: () =
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    authFetch<{data: {install_cmd: string}}>(`/api/servers/${serverId}/pubkey-cmd`)
-      .then((d) => { setCmd(d.data?.install_cmd ?? ""); setLoading(false); })
+    authFetch<{install_cmd: string; public_key: string}>(`/api/servers/${serverId}/pubkey-cmd`)
+      .then((d) => { setCmd(d.install_cmd ?? ""); setLoading(false); })
       .catch(() => setLoading(false));
   }, [serverId]);
 

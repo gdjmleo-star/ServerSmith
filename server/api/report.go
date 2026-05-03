@@ -44,10 +44,21 @@ func HandleReport(w http.ResponseWriter, r *http.Request) {
 
 	agentVersion := r.Header.Get("X-Agent-Version")
 
-	// Find server by host (server_id = IP/hostname)
+	// Find server: first try numeric ID match, then fallback to host match
 	var serverID int64
-	err := db.DB.QueryRow("SELECT id FROM servers WHERE host = ?", req.ServerID).Scan(&serverID)
-	if err != nil {
+	var lookupErr error
+
+	// Try numeric ID first (when install cmd passes SERVER_ID=<number>)
+	var numericID int64
+	if _, scanErr := fmt.Sscanf(req.ServerID, "%d", &numericID); scanErr == nil && numericID > 0 {
+		lookupErr = db.DB.QueryRow("SELECT id FROM servers WHERE id = ?", numericID).Scan(&serverID)
+	}
+	// Fallback: match by host (IP/hostname)
+	if serverID == 0 {
+		lookupErr = db.DB.QueryRow("SELECT id FROM servers WHERE host = ?", req.ServerID).Scan(&serverID)
+	}
+
+	if serverID == 0 || lookupErr != nil {
 		log.Printf("Server %s not found, auto-registering", req.ServerID)
 		res, err := db.DB.Exec(
 			"INSERT INTO servers (name, host, status, last_report_at, created_at, updated_at) VALUES (?, ?, 'online', ?, ?, ?)",
@@ -81,7 +92,7 @@ func HandleReport(w http.ResponseWriter, r *http.Request) {
 	_ = row.Scan(&lastNetIn, &lastNetOut)
 
 	// Insert new snapshot
-	_, err = db.DB.Exec(
+	_, err := db.DB.Exec(
 		`INSERT INTO traffic_snapshots (server_id, report_at, net_in, net_out, cpu_percent, mem_percent, disk_percent)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		serverID, now, req.NetIn, req.NetOut, req.CPUPercent, req.MemPercent, req.DiskPercent,

@@ -26,10 +26,31 @@ function getInstallCmd(tab: Tab, serverId: number, managerUrl: string): string {
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
-    navigator.clipboard.writeText(text).then(() => {
+    // navigator.clipboard requires HTTPS; fallback for HTTP environments
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => fallbackCopy());
+    } else {
+      fallbackCopy();
+    }
+  };
+  const fallbackCopy = () => {
+    const el = document.createElement("textarea");
+    el.value = text;
+    el.style.position = "fixed";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    try {
+      document.execCommand("copy");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch {/* ignore */} finally {
+      document.body.removeChild(el);
+    }
   };
   return (
     <button

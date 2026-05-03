@@ -63,6 +63,10 @@ func main() {
 	mux.HandleFunc("/api/dashboard", api.RequireAuth(api.HandleDashboard))
 	mux.HandleFunc("/api/dashboard/by-carrier", api.RequireAuth(api.HandleDashboardByCarrier))
 	mux.HandleFunc("/api/alerts", api.RequireAuth(api.HandleAlerts))
+	// User management
+	mux.HandleFunc("/api/users/change-password", api.RequireAuth(api.HandleChangePassword))
+	mux.HandleFunc("/api/users/", api.RequireAuth(api.HandleUserByID))
+	mux.HandleFunc("/api/users", api.RequireAuth(api.HandleUsers))
 	mux.HandleFunc("/api/alerts/", api.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/acknowledge") {
 			api.HandleAcknowledgeAlert(w, r)

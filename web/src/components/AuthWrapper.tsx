@@ -34,6 +34,7 @@ function NavBar() {
       <div className="flex items-center gap-5">
         <a href="/servers" className="text-slate-400 hover:text-white text-sm transition">服务器管理</a>
         <a href="/probes" className="text-slate-400 hover:text-white text-sm transition">探针安装</a>
+        <a href="/settings" className="text-slate-400 hover:text-white text-sm transition">系统设置</a>
         <a href={TOPEMBY_URL} target="_blank" rel="noopener noreferrer"
           className="text-slate-400 hover:text-white text-sm transition">TopEmby ↗</a>
         {showAlerts && <NotificationBadge />}

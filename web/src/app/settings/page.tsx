@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, authFetch } from "@/hooks/useAuth";
 
 interface UserInfo {
   id: number;
@@ -21,7 +21,7 @@ function Toast({ msg, type }: { msg: string; type: "ok" | "err" }) {
 }
 
 export default function SettingsPage() {
-  const { authFetch, username: currentUser } = useAuth();
+  const { username: currentUser } = useAuth();
 
   // ── Change password state ──
   const [curPwd, setCurPwd] = useState("");
@@ -46,15 +46,14 @@ export default function SettingsPage() {
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const res = await authFetch("/api/users");
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.data ?? data);
-      }
+      const data = await authFetch<UserInfo[]>("/api/users");
+      setUsers(Array.isArray(data) ? data : []);
+    } catch {
+      showToast("加载用户列表失败", "err");
     } finally {
       setUsersLoading(false);
     }
-  }, [authFetch]);
+  }, []);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
@@ -65,17 +64,21 @@ export default function SettingsPage() {
     if (newPwd.length < 4) { showToast("新密码至少 4 位", "err"); return; }
     setPwdLoading(true);
     try {
-      const res = await authFetch("/api/users/change-password", {
+      await authFetch("/api/users/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ current_password: curPwd, new_password: newPwd }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        showToast("密码修改成功，下次登录生效", "ok");
-        setCurPwd(""); setNewPwd(""); setConfirmPwd("");
-      } else {
-        showToast(data.error ?? "修改失败", "err");
+      showToast("密码修改成功，下次登录生效", "ok");
+      setCurPwd(""); setNewPwd(""); setConfirmPwd("");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "修改失败";
+      // Try to parse JSON error from message
+      try {
+        const parsed = JSON.parse(msg);
+        showToast(parsed.error ?? msg, "err");
+      } catch {
+        showToast(msg, "err");
       }
     } finally {
       setPwdLoading(false);
@@ -88,18 +91,21 @@ export default function SettingsPage() {
     if (!newUsername.trim() || !newUserPwd) { showToast("用户名和密码不能为空", "err"); return; }
     setCreateLoading(true);
     try {
-      const res = await authFetch("/api/users", {
+      await authFetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: newUsername.trim(), password: newUserPwd }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        showToast(`用户 ${newUsername} 创建成功`, "ok");
-        setNewUsername(""); setNewUserPwd("");
-        loadUsers();
-      } else {
-        showToast(data.error ?? "创建失败", "err");
+      showToast(`用户 ${newUsername} 创建成功`, "ok");
+      setNewUsername(""); setNewUserPwd("");
+      loadUsers();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "创建失败";
+      try {
+        const parsed = JSON.parse(msg);
+        showToast(parsed.error ?? msg, "err");
+      } catch {
+        showToast(msg, "err");
       }
     } finally {
       setCreateLoading(false);
@@ -109,13 +115,13 @@ export default function SettingsPage() {
   // ── Delete user ──
   const handleDeleteUser = async (user: UserInfo) => {
     if (!confirm(`确认删除用户「${user.username}」？此操作不可撤销。`)) return;
-    const res = await authFetch(`/api/users/${user.id}`, { method: "DELETE" });
-    const data = await res.json();
-    if (res.ok) {
+    try {
+      await authFetch(`/api/users/${user.id}`, { method: "DELETE" });
       showToast(`用户 ${user.username} 已删除`, "ok");
       loadUsers();
-    } else {
-      showToast(data.error ?? "删除失败", "err");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "删除失败";
+      showToast(msg, "err");
     }
   };
 

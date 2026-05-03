@@ -53,27 +53,6 @@ func (c *Collector) Collect() (*SystemStats, error) {
 	return stats, nil
 }
 
-func indexByte(s string, c byte) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			return i
-		}
-	}
-	return -1
-}
-
-func contains(s string, sub string) bool {
-	if len(sub) == 0 || len(s) < len(sub) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
-}
-
 func init() {
 	if runtime.GOOS != "linux" {
 		fmt.Printf("[agent] Running on %s — some metrics use platform-specific implementation\n", runtime.GOOS)

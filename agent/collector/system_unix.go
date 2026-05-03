@@ -6,26 +6,46 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 	"syscall"
+	"time"
 )
 
-func getCPUPercent() (float64, error) {
+// readCPUStat reads the aggregate CPU jiffies from /proc/stat.
+func readCPUStat() (total, idle int64, err error) {
 	data, err := os.ReadFile("/proc/stat")
+	if err != nil {
+		return 0, 0, err
+	}
+	var user, nice, system, idleJ, iowait, irq, softirq, steal int64
+	n, _ := fmt.Sscanf(string(data), "cpu %d %d %d %d %d %d %d %d",
+		&user, &nice, &system, &idleJ, &iowait, &irq, &softirq, &steal)
+	if n < 4 {
+		return 0, 0, fmt.Errorf("cannot parse /proc/stat")
+	}
+	total = user + nice + system + idleJ + iowait + irq + softirq + steal
+	idle = idleJ + iowait
+	return total, idle, nil
+}
+
+// getCPUPercent samples /proc/stat twice with a 1-second gap and returns
+// the real-time CPU usage percentage over that interval.
+func getCPUPercent() (float64, error) {
+	total1, idle1, err := readCPUStat()
 	if err != nil {
 		return 0, err
 	}
-	var user, nice, system, idle, iowait, irq, softirq, steal int64
-	n, _ := fmt.Sscanf(string(data), "cpu %d %d %d %d %d %d %d %d",
-		&user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal)
-	if n < 4 {
-		return 0, fmt.Errorf("cannot parse /proc/stat")
+	time.Sleep(1 * time.Second)
+	total2, idle2, err := readCPUStat()
+	if err != nil {
+		return 0, err
 	}
-	total := user + nice + system + idle + iowait + irq + softirq + steal
-	idleTotal := idle + iowait
-	if total == 0 {
+	dTotal := total2 - total1
+	dIdle := idle2 - idle1
+	if dTotal <= 0 {
 		return 0, nil
 	}
-	return float64(total-idleTotal) / float64(total) * 100, nil
+	return math.Round(float64(dTotal-dIdle)/float64(dTotal)*100*10) / 10, nil
 }
 
 func getMemPercent() (float64, error) {
@@ -64,23 +84,17 @@ func getNetStats() (int64, int64, error) {
 		return 0, 0, err
 	}
 	var totalIn, totalOut int64
-	lines := string(data)
-	for len(lines) > 0 {
-		var line string
-		idx := indexByte(lines, '\n')
-		if idx < 0 {
-			line = lines
-			lines = ""
-		} else {
-			line = lines[:idx]
-			lines = lines[idx+1:]
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line) // strip leading spaces before interface name
+		if line == "" || strings.HasPrefix(line, "Inter") || strings.HasPrefix(line, "face") {
+			continue
 		}
-		if line == "" || line[0] == ' ' || contains(line, "lo:") {
+		if strings.HasPrefix(line, "lo:") {
 			continue
 		}
 		var ifName string
 		var in, out int64
-		if n, _ := fmt.Sscanf(line, "%s %d %*d %*d %*d %*d %*d %*d %d", &ifName, &in, &out); n >= 3 {
+		if n, _ := fmt.Sscanf(line, "%s %d %*d %*d %*d %*d %*d %*d %*d %d", &ifName, &in, &out); n >= 3 {
 			totalIn += in
 			totalOut += out
 		}

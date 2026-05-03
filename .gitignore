@@ -23,6 +23,12 @@ Thumbs.db
 *.test
 *.out
 
+# Compiled binaries — distributed via GitHub Releases, not committed
+serversmith-linux*
+serversmith-linux-amd64
+server/serversmith-linux*
+agent/serversmith-agent-*
+
 # SQLite runtime data
 data/*.db
 data/*.db-shm

@@ -39,8 +39,8 @@ build-linux: build-linux-amd64 build-linux-arm64
 build-linux-amd64:
 	@echo ">>> linux/amd64 ..."
 	mkdir -p server/web-out && cp -r web/out/* server/web-out/
-	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../dist/serversmith-linux-amd64 .
-	@echo "✅ dist/serversmith-linux-amd64"
+	cd server && go clean -cache && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o ../dist/serversmith-linux-amd64 .
+	@echo "✅ dist/serversmith-linux-amd64 (clean build)"
 
 build-linux-arm64:
 	@echo ">>> linux/arm64 ..."

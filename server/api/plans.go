@@ -99,10 +99,28 @@ func createTrafficPlan(tx *sql.Tx, serverID int64, req *ServerRequest) error {
 	}
 
 	nextCycle := calcNextCycle(cycleDay, cycleTime)
+
+	// expire_at applies to all plan types
+	var expireAt *string
+	if req.ExpireAt != nil && *req.ExpireAt != "" {
+		parsed, parseErr := time.ParseInLocation("2006-01-02", *req.ExpireAt, db.TZ)
+		if parseErr == nil {
+			bjEnd := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 0, db.TZ)
+			utcStr := bjEnd.UTC().Format(time.RFC3339)
+			expireAt = &utcStr
+		} else {
+			expireAt = req.ExpireAt
+		}
+	}
+	expireNotifyDays := 7
+	if req.ExpireNotifyDays != nil {
+		expireNotifyDays = *req.ExpireNotifyDays
+	}
+
 	_, err := tx.Exec(
-		`INSERT INTO server_plans (server_id, plan_type, total_quota, initial_used_gb, cycle_day, cycle_time, used_bytes, next_cycle_at)
-		 VALUES (?, 'traffic', ?, ?, ?, ?, ?, ?)`,
-		serverID, totalQuota, initialUsed, cycleDay, cycleTime, usedBytes, nextCycle,
+		`INSERT INTO server_plans (server_id, plan_type, total_quota, initial_used_gb, cycle_day, cycle_time, used_bytes, next_cycle_at, expire_at, expire_notify_days)
+		 VALUES (?, 'traffic', ?, ?, ?, ?, ?, ?, ?, ?)`,
+		serverID, totalQuota, initialUsed, cycleDay, cycleTime, usedBytes, nextCycle, expireAt, expireNotifyDays,
 	)
 	return err
 }

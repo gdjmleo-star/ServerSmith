@@ -168,18 +168,16 @@ export function ServerForm({ initial, onSubmit, submitLabel, mode = "create" }: 
           </>
         )}
 
-        {!isTraffic && (
-          <>
-            <Field label="到期日" hint="不填则不跟踪">
-              <input type="date" className={inputCls} value={form.expire_at}
-                onChange={e => set("expire_at", e.target.value)} />
-            </Field>
-            <Field label="提前提醒天数">
-              <input type="number" className={inputCls} value={form.expire_notify_days ?? 7}
-                onChange={e => set("expire_notify_days", parseInt(e.target.value) || null)} />
-            </Field>
-          </>
-        )}
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="到期日" hint="不填则不跟踪">
+            <input type="date" className={inputCls} value={form.expire_at}
+              onChange={e => set("expire_at", e.target.value)} />
+          </Field>
+          <Field label="提前提醒天数">
+            <input type="number" className={inputCls} value={form.expire_notify_days ?? 7}
+              onChange={e => set("expire_notify_days", parseInt(e.target.value) || null)} />
+          </Field>
+        </div>
 
         <div className="flex gap-3 pt-2">
           <Button type="submit" disabled={submitting}>{submitting ? "保存中…" : submitLabel}</Button>

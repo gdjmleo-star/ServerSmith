@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"serversmith/db"
 	"strconv"
+	"time"
 )
 
 type ServerRequest struct {
@@ -21,6 +22,7 @@ type ServerRequest struct {
 	CycleDay    *int     `json:"cycle_day"`
 	CycleTime   string   `json:"cycle_time"`
 	ExpireAt    *string  `json:"expire_at"`
+	ExpireNotifyDays *int `json:"expire_notify_days"`
 }
 
 type ServerResponse struct {
@@ -271,6 +273,27 @@ func updateServer(w http.ResponseWriter, r *http.Request, id int64) {
 				writeError(w, 500, "commit error: "+err.Error())
 				return
 			}
+		} else if req.ExpireAt != nil {
+			// Same plan type — update expire_at and expire_notify_days in-place
+			var expireAt *string
+			if *req.ExpireAt != "" {
+				parsed, parseErr := time.ParseInLocation("2006-01-02", *req.ExpireAt, db.TZ)
+				if parseErr == nil {
+					bjEnd := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 0, db.TZ)
+					utcStr := bjEnd.UTC().Format(time.RFC3339)
+					expireAt = &utcStr
+				} else {
+					expireAt = req.ExpireAt
+				}
+			}
+			notifyDays := 7
+			if req.ExpireNotifyDays != nil {
+				notifyDays = *req.ExpireNotifyDays
+			}
+			_, _ = db.DB.Exec(
+				"UPDATE server_plans SET expire_at=?, expire_notify_days=? WHERE server_id=?",
+				expireAt, notifyDays, id,
+			)
 		}
 	}
 

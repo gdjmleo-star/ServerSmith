@@ -28,16 +28,16 @@ func Init(dbPath string) error {
 		return fmt.Errorf("open sqlite: %w", err)
 	}
 
-	// Connection settings
-	DB.SetMaxOpenConns(1)
-	DB.SetMaxIdleConns(1)
+	// WAL supports concurrent readers; allow multiple conns to prevent cron blocking HTTP handlers
+	DB.SetMaxOpenConns(5)
+	DB.SetMaxIdleConns(3)
 	DB.SetConnMaxLifetime(0)
 
 	// Enable WAL mode
 	if _, err := DB.Exec("PRAGMA journal_mode=WAL"); err != nil {
 		return fmt.Errorf("enable WAL: %w", err)
 	}
-	if _, err := DB.Exec("PRAGMA busy_timeout=5000"); err != nil {
+	if _, err := DB.Exec("PRAGMA busy_timeout=10000"); err != nil {
 		return fmt.Errorf("set busy timeout: %w", err)
 	}
 	if _, err := DB.Exec("PRAGMA foreign_keys=ON"); err != nil {
@@ -168,8 +168,7 @@ func runMigrations() error {
 	_, _ = DB.Exec("ALTER TABLE alerts ADD COLUMN acknowledged INTEGER DEFAULT 0")
 	_, _ = DB.Exec("ALTER TABLE alerts ADD COLUMN acknowledged_at DATETIME")
 	// Migration: agent version tracking
-	_, _ = DB.Exec("ALTER TABLE servers ADD COLUMN agent_version TEXT")
-	// Migration: expire_notify_days (added in P4, for existing databases without the column)
+	_, _ = DB.Exec("ALTER TABLE servers ADD COLUMN agent_version TEXT")	// Migration: expire_notify_days (added in P4, for existing databases without the column)
 	_, _ = DB.Exec("ALTER TABLE server_plans ADD COLUMN expire_notify_days INTEGER DEFAULT 7")
 
 	log.Println("Database schema initialized")

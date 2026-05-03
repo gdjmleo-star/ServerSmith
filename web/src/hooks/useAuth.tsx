@@ -5,6 +5,7 @@ import { API_BASE } from "@/lib/config";
 interface AuthContextType {
   isLoggedIn: boolean;
   username: string | null;
+  initialized: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   getToken: () => string | null;
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null);
   }, []);
 
-  // Verify stored token on mount
+  // Verify stored token on mount — runs once, does NOT block rendering
   useEffect(() => {
     const token = getStoredToken();
     const storedUser = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
@@ -57,9 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(USER_KEY);
         }
       })
-      .catch(() => {
-        // API unreachable — keep trying later
-      })
+      .catch(() => {})
       .finally(() => setInitialized(true));
   }, []);
 
@@ -81,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, username, login, logout, getToken }}>
-      {initialized ? children : <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">加载中…</div>}
+    <AuthContext.Provider value={{ isLoggedIn, username, initialized, login, logout, getToken }}>
+      {children}
     </AuthContext.Provider>
   );
 }

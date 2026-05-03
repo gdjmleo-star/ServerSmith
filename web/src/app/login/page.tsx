@@ -1,6 +1,5 @@
 "use client";
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
@@ -8,8 +7,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const router = useRouter();
+  const { login, isLoggedIn, initialized } = useAuth();
+
+  // If user is already logged in, redirect to home
+  useEffect(() => {
+    if (initialized && isLoggedIn) {
+      window.location.href = "/";
+    }
+  }, [initialized, isLoggedIn]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -17,7 +22,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(username, password);
-      router.push("/");
+      // Use full page reload to ensure clean auth state
+      window.location.href = "/";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "登录失败");
     } finally {

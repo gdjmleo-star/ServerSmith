@@ -6,7 +6,6 @@ import (
 	"os"
 	"runtime"
 	"syscall"
-	"time"
 )
 
 type SystemStats struct {

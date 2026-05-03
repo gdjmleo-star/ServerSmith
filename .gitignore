@@ -23,6 +23,21 @@ Thumbs.db
 *.test
 *.out
 
+# SQLite runtime data
+data/*.db
+data/*.db-shm
+data/*.db-wal
+!data/.gitkeep
+
+# Internal dev docs
+PROJECT_MEMORY.md
+DEVELOPMENT_TASK.md
+*架构蓝图*.md
+玲玲执行指令*.md
+全局需求规格说明书*.md
+web/AGENTS.md
+web/CLAUDE.md
+
 # Environment
 .env
 .env.local

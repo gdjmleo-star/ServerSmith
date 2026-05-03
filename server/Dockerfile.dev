@@ -1,0 +1,6 @@
+FROM golang:1.22-alpine
+WORKDIR /app
+COPY server/go.mod server/go.sum ./
+RUN go mod download
+EXPOSE 18080
+CMD ["go", "run", "."]

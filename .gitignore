@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.next/
+web/out/
+web/.next/
+
+# Build output
+dist/
+server/web-out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Go
+*.exe
+*.test
+*.out
+
+# Environment
+.env
+.env.local

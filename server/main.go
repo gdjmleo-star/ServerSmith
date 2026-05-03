@@ -30,48 +30,51 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	// Create default admin on first run
+	api.InitDefaultAdmin()
+
 	mux := http.NewServeMux()
 
-	// CORS
-	handler := api.CORSMiddleware(mux)
-
-	// API Routes
+	// ── Public routes (no auth) ──
+	mux.HandleFunc("/api/login", api.HandleLogin)
+	mux.HandleFunc("/api/verify", api.HandleVerify)
 	mux.HandleFunc("/api/report", api.HandleReport)
-	mux.HandleFunc("/api/servers", api.HandleServers)
-	mux.HandleFunc("/api/servers/batch-reboot", api.HandleBatchReboot)
-	mux.HandleFunc("/api/servers/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/public/status", api.HandlePublicStatus)
+
+	// ── Protected routes (require JWT) ──
+	mux.HandleFunc("/api/servers", api.RequireAuth(api.HandleServers))
+	mux.HandleFunc("/api/servers/batch-reboot", api.RequireAuth(api.HandleBatchReboot))
+	mux.HandleFunc("/api/servers/", api.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		// /api/servers/:id/reboot
 		if len(path) > len("/api/servers/")+1 && path[len(path)-7:] == "/reboot" {
 			api.HandleServerReboot(w, r)
 			return
 		}
-		// /api/servers/:id/history
 		if len(path) > len("/api/servers/")+1 && path[len(path)-8:] == "/history" {
 			api.HandleServerHistory(w, r)
 			return
 		}
-		// /api/servers/:id/reboot-tasks
 		if len(path) > len("/api/servers/")+1 && strings.HasSuffix(path, "/reboot-tasks") {
 			api.HandleServerRebootTasks(w, r)
 			return
 		}
-		// /api/servers/:id
 		api.HandleServerByID(w, r)
-	})
-	mux.HandleFunc("/api/dashboard", api.HandleDashboard)
-	mux.HandleFunc("/api/dashboard/by-carrier", api.HandleDashboardByCarrier)
-	mux.HandleFunc("/api/alerts", api.HandleAlerts)
-	mux.HandleFunc("/api/alerts/", func(w http.ResponseWriter, r *http.Request) {
-		// /api/alerts/:id/acknowledge
+	}))
+	mux.HandleFunc("/api/dashboard", api.RequireAuth(api.HandleDashboard))
+	mux.HandleFunc("/api/dashboard/by-carrier", api.RequireAuth(api.HandleDashboardByCarrier))
+	mux.HandleFunc("/api/alerts", api.RequireAuth(api.HandleAlerts))
+	mux.HandleFunc("/api/alerts/", api.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/acknowledge") {
 			api.HandleAcknowledgeAlert(w, r)
 			return
 		}
 		http.NotFound(w, r)
-	})
-	mux.HandleFunc("/api/alert-configs", api.HandleAlertConfigs)
-	mux.HandleFunc("/api/backup", api.HandleBackup)
+	}))
+	mux.HandleFunc("/api/alert-configs", api.RequireAuth(api.HandleAlertConfigs))
+	mux.HandleFunc("/api/backup", api.RequireAuth(api.HandleBackup))
+
+	// CORS
+	handler := api.CORSMiddleware(mux)
 
 	// Web static files (Go embed — serves the Next.js static export)
 	// SPA fallback: non-matching paths serve index.html for client-side routing

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API_BASE } from "@/lib/config";
+import { authFetch } from "./useAuth";
 
 export interface CostPerGBItem {
   carrier: string;
@@ -56,9 +56,9 @@ export function useDashboard(): DashboardState {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE}/api/dashboard`).then((r) => r.json()),
-      fetch(`${API_BASE}/api/dashboard/by-carrier`).then((r) => r.json()),
-      fetch(`${API_BASE}/api/alerts?limit=10`).then((r) => r.json()),
+      authFetch<DashboardData>('/api/dashboard'),
+      authFetch<CarrierSummary[]>('/api/dashboard/by-carrier'),
+      authFetch<AlertItem[]>('/api/alerts?limit=10'),
     ])
       .then(([dash, car, alts]) => {
         setDashboard(dash);

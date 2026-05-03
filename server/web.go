@@ -19,10 +19,14 @@ func webHandler() http.Handler {
 	fileServer := http.FileServer(http.FS(subFS))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Try the exact path first
+		// embed.FS doesn't support directory Stat, so check for index.html instead
 		path := strings.TrimPrefix(r.URL.Path, "/")
-		if _, err := fs.Stat(subFS, path); err != nil {
-			// Not found: serve index.html as SPA fallback (client-side router handles 404s)
+		checkPath := strings.TrimSuffix(path, "/") + "/index.html"
+		if checkPath == "/index.html" {
+			checkPath = "index.html"
+		}
+		if _, err := fs.Stat(subFS, checkPath); err != nil {
+			// Really 404 → SPA fallback to index.html (client-side router handles it)
 			r.URL.Path = "/"
 		}
 		fileServer.ServeHTTP(w, r)

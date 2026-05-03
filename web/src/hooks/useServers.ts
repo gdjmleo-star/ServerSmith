@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE } from "@/lib/config";
+import { authFetch } from "./useAuth";
 
 export interface Server {
   id: number;
@@ -48,15 +49,7 @@ export interface ServerFormData {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "Unknown error");
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return res.json() as Promise<T>;
+  return authFetch<T>(path, init);
 }
 
 export function useServers() {

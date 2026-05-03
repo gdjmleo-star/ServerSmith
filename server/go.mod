@@ -2,7 +2,10 @@ module serversmith
 
 go 1.22
 
-require modernc.org/sqlite v1.30.0
+require (
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	modernc.org/sqlite v1.30.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

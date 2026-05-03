@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE, DEFAULT_HISTORY_DAYS } from "@/lib/config";
+import { authFetch } from "./useAuth";
 
 export interface HistoryPoint {
   date: string;
@@ -19,11 +20,9 @@ export function useHistory(serverId: number, days: number = DEFAULT_HISTORY_DAYS
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${API_BASE}/api/servers/${serverId}/history?days=${days}`
+      const json = await authFetch<HistoryPoint[]>(
+        `/api/servers/${serverId}/history?days=${days}`
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
       setData(json ?? []);
     } catch (e) {
       setError((e as Error).message);

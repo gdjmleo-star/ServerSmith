@@ -149,6 +149,13 @@ func runMigrations() error {
 	CREATE INDEX IF NOT EXISTS idx_plans_next_cycle ON server_plans(next_cycle_at);
 	CREATE INDEX IF NOT EXISTS idx_servers_status ON servers(status);
 	CREATE INDEX IF NOT EXISTS idx_servers_last_report ON servers(last_report_at);
+
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password_hash TEXT NOT NULL,
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
 	`
 
 	if _, err := DB.Exec(schema); err != nil {

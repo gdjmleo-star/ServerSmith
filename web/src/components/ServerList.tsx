@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Server } from "@/hooks/useServers";
-import { PAGE_SIZE, API_BASE } from "@/lib/config";
+import { PAGE_SIZE } from "@/lib/config";
+import { authFetch } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toast } from "@/components/Toast";
@@ -87,12 +88,10 @@ export function ServerList({ servers, loading, error, onRefresh, onDelete }: Pro
   async function handleBatchReboot() {
     setBatchRebooting(true);
     try {
-      const res = await fetch(`${API_BASE}/api/servers/batch-reboot`, {
+      const results = await authFetch<Array<{ server_id: number; result: string }>>('/api/servers/batch-reboot', {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ server_ids: Array.from(selected) }),
       });
-      const results = await res.json() as Array<{ server_id: number; result: string }>;
       const ok = results.filter((r) => r.result === "success").length;
       const fail = results.length - ok;
       setToast({ msg: `${ok} 台成功${fail > 0 ? `，${fail} 台失败` : ""}`, type: fail > 0 ? "err" : "ok" });

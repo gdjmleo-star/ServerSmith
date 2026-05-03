@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { API_BASE } from "@/lib/config";
+import { authFetch } from "./useAuth";
 
 export interface RebootTask {
   id: number;
@@ -19,8 +19,8 @@ export function useRebootTasks(serverId: number | null, limit = 5) {
     if (!serverId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/servers/${serverId}/reboot-tasks?limit=${limit}`);
-      if (res.ok) setTasks(await res.json());
+      const data = await authFetch<RebootTask[]>(`/api/servers/${serverId}/reboot-tasks?limit=${limit}`);
+      setTasks(data);
     } catch {
       // silent degraded
     } finally {

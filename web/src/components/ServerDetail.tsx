@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/Toast";
 import { formatUTCToBeijing, timeAgo } from "@/lib/timezone";
-import { API_BASE } from "@/lib/config";
 import { useState } from "react";
+import { authFetch } from "@/hooks/useAuth";
 
 interface Props {
   server: Server;
@@ -43,8 +43,7 @@ export function ServerDetail({ server }: Props) {
   async function handleReboot() {
     setRebooting(true);
     try {
-      const res = await fetch(`${API_BASE}/api/servers/${server.id}/reboot`, { method: "POST" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await authFetch<unknown>(`/api/servers/${server.id}/reboot`, { method: "POST" });
       setToast({ msg: "重启指令已发送", type: "ok" });
     } catch (e) {
       setToast({ msg: `重启失败：${(e as Error).message}`, type: "err" });

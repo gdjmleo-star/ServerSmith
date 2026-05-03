@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, ALERT_POLL_MS } from "@/lib/config";
+import { ALERT_POLL_MS } from "@/lib/config";
+import { authFetch } from "@/hooks/useAuth";
 
 export function NotificationBadge() {
   const router = useRouter();
@@ -10,11 +11,8 @@ export function NotificationBadge() {
   useEffect(() => {
     async function poll() {
       try {
-        const res = await fetch(`${API_BASE}/api/alerts?acknowledged=false&limit=100`);
-        if (res.ok) {
-          const data = await res.json();
-          setCount(Array.isArray(data) ? data.length : 0);
-        }
+        const data = await authFetch<unknown[]>('/api/alerts?acknowledged=false&limit=100');
+        setCount(Array.isArray(data) ? data.length : 0);
       } catch {
         // silently ignore — badge degraded gracefully
       }

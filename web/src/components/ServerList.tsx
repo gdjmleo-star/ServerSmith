@@ -2,11 +2,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Server } from "@/hooks/useServers";
-import { useLiveStats } from "@/hooks/useLiveStats";
 import { authFetch } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Toast } from "@/components/Toast";
-import { ServerCard } from "@/components/ServerCard";
+import { daysUntilExpire } from "@/lib/format";
 
 interface Props {
   servers: Server[];
@@ -16,15 +16,43 @@ interface Props {
   onDelete: (id: number) => Promise<void>;
 }
 
+function StatusBadge({ status }: { status: string }) {
+  if (status === "online") return <Badge className="bg-green-600 text-white text-xs">在线</Badge>;
+  if (status === "offline") return <Badge className="bg-red-600 text-white text-xs">离线</Badge>;
+  return <Badge className="bg-slate-600 text-white text-xs">未知</Badge>;
+}
+
+function expireDateClass(expireAt: string | null): string {
+  if (!expireAt) return "text-slate-500";
+  const days = daysUntilExpire(expireAt);
+  if (days < 0) return "text-red-400 font-semibold";
+  if (days <= 7) return "text-orange-400 font-semibold";
+  if (days <= 30) return "text-yellow-400";
+  return "text-slate-300";
+}
+
 export function ServerList({ servers, loading, error, onRefresh, onDelete }: Props) {
   const router = useRouter();
-  const { statsMap } = useLiveStats();
   const [confirmServer, setConfirmServer] = useState<Server | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [batchRebooting, setBatchRebooting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [search, setSearch] = useState("");
+
+  const filtered = servers.filter(
+    (s) => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.host.includes(search)
+  );
+  const allSelected = filtered.length > 0 && filtered.every((s) => selected.has(s.id));
+
+  function toggleAll() {
+    const ids = filtered.map((s) => s.id);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      allSelected ? ids.forEach((id) => next.delete(id)) : ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }
 
   function toggleOne(id: number) {
     setSelected((prev) => {
@@ -65,10 +93,6 @@ export function ServerList({ servers, loading, error, onRefresh, onDelete }: Pro
 
   if (loading) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">加载中…</div>
-  );
-
-  const filtered = servers.filter((s) =>
-    !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.host.includes(search)
   );
 
   return (
@@ -121,39 +145,59 @@ export function ServerList({ servers, loading, error, onRefresh, onDelete }: Pro
         </div>
       </div>
 
-      {/* Card grid */}
-      {filtered.length === 0 ? (
-        <div className="text-center text-slate-500 py-16">
-          {search ? "没有匹配的服务器" : "暂无服务器，点击「新增服务器」开始"}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((s) => (
-            <div key={s.id} className="relative group">
-              <ServerCard
-                server={s}
-                live={statsMap.get(s.id)}
-                selected={selected.has(s.id)}
-                onSelect={toggleOne}
-                onClick={(id) => router.push(`/servers/${id}`)}
-              />
-              {/* Edit / Delete overlay */}
-              <div className="absolute bottom-3 right-3 hidden group-hover:flex gap-1">
-                <Button size="sm" variant="ghost"
-                  className="text-xs text-slate-400 hover:text-white bg-slate-900/80 backdrop-blur-sm"
-                  onClick={(e) => { e.stopPropagation(); router.push(`/servers/${s.id}/edit`); }}>
-                  编辑
-                </Button>
-                <Button size="sm" variant="ghost"
-                  className="text-xs text-red-400 hover:text-red-300 bg-slate-900/80 backdrop-blur-sm"
-                  onClick={(e) => { e.stopPropagation(); setConfirmServer(s); }}>
-                  删除
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-slate-700">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-700 text-slate-400">
+              <th className="px-3 py-2 w-8">
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-blue-500" />
+              </th>
+              <th className="px-3 py-2 text-left">名称</th>
+              <th className="px-3 py-2 text-left">IP</th>
+              <th className="px-3 py-2 text-left">线路</th>
+              <th className="px-3 py-2 text-left">状态</th>
+              <th className="px-3 py-2 text-left">月租</th>
+              <th className="px-3 py-2 text-left">到期日</th>
+              <th className="px-3 py-2 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={8} className="text-center text-slate-500 py-10">
+                {search ? "没有匹配的服务器" : "暂无服务器"}
+              </td></tr>
+            )}
+            {filtered.map((s) => (
+              <tr key={s.id} className={`border-b border-slate-800 hover:bg-slate-800/50 ${selected.has(s.id) ? "bg-blue-950/20" : ""}`}>
+                <td className="px-3 py-2">
+                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleOne(s.id)} className="accent-blue-500" />
+                </td>
+                <td className="px-3 py-2">
+                  <button className="text-blue-400 hover:text-blue-300 font-medium" onClick={() => router.push(`/servers/${s.id}`)}>
+                    {s.name}
+                  </button>
+                </td>
+                <td className="px-3 py-2 font-mono text-slate-300 text-xs">{s.host}</td>
+                <td className="px-3 py-2 text-slate-400">{s.carrier_type ?? "—"}</td>
+                <td className="px-3 py-2"><StatusBadge status={s.status} /></td>
+                <td className="px-3 py-2 text-slate-300">{s.monthly_rent > 0 ? `¥${s.monthly_rent.toFixed(0)}` : "—"}</td>
+                <td className={`px-3 py-2 text-xs ${expireDateClass(s.expire_at)}`}>
+                  {s.expire_at ? s.expire_at.slice(0, 10) : "—"}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <div className="flex gap-1 justify-end">
+                    <Button size="sm" variant="ghost" className="text-xs text-slate-400 hover:text-white"
+                      onClick={() => router.push(`/servers/${s.id}/edit`)}>编辑</Button>
+                    <Button size="sm" variant="ghost" className="text-xs text-red-400 hover:text-red-300"
+                      onClick={() => setConfirmServer(s)}>删除</Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

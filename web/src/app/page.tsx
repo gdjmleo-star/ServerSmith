@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import StatCard from "@/components/StatCard";
 import CarrierCard from "@/components/CarrierCard";
 import { CostSummary } from "@/components/CostSummary";
+import { ServerOverview } from "@/components/ServerOverview";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useAlerts } from "@/hooks/useAlerts";
 
@@ -80,6 +81,15 @@ export default function DashboardPage() {
         {carriers.map((c) => (
           <CarrierCard key={c.carrier_type} data={c} />
         ))}
+      </div>
+
+      {/* Server Overview */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-300">全部服务器实时状态</h2>
+          <a href="/servers" className="text-sm text-blue-400 hover:text-blue-300">服务器管理 →</a>
+        </div>
+        <ServerOverview />
       </div>
 
       {/* Alerts */}

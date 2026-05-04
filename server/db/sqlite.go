@@ -170,6 +170,12 @@ func runMigrations() error {
 	// Migration: agent version tracking
 	_, _ = DB.Exec("ALTER TABLE servers ADD COLUMN agent_version TEXT")	// Migration: expire_notify_days (added in P4, for existing databases without the column)
 	_, _ = DB.Exec("ALTER TABLE server_plans ADD COLUMN expire_notify_days INTEGER DEFAULT 7")
+	// Migration P9: split used_bytes into in/out
+	_, _ = DB.Exec("ALTER TABLE server_plans ADD COLUMN used_bytes_in INTEGER DEFAULT 0")
+	_, _ = DB.Exec("ALTER TABLE server_plans ADD COLUMN used_bytes_out INTEGER DEFAULT 0")
+	_, _ = DB.Exec("UPDATE server_plans SET used_bytes_in = used_bytes / 2, used_bytes_out = used_bytes - used_bytes / 2 WHERE used_bytes > 0 AND used_bytes_in = 0 AND used_bytes_out = 0")
+	// Migration P9: add uptime_sec to snapshots
+	_, _ = DB.Exec("ALTER TABLE traffic_snapshots ADD COLUMN uptime_sec INTEGER DEFAULT 0")
 
 	log.Println("Database schema initialized")
 	return nil

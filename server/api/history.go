@@ -12,11 +12,12 @@ import (
 )
 
 type HistoryPoint struct {
-	Date    string  `json:"date"`
-	BytesIn int64   `json:"bytes_in"`
-	BytesOut int64  `json:"bytes_out"`
-	AvgCPU  float64 `json:"avg_cpu"`
-	AvgMem  float64 `json:"avg_mem"`
+	Date     string  `json:"date"`
+	BytesIn  int64   `json:"bytes_in"`
+	BytesOut int64   `json:"bytes_out"`
+	AvgCPU   float64 `json:"avg_cpu"`
+	AvgMem   float64 `json:"avg_mem"`
+	AvgDisk  float64 `json:"avg_disk"`
 }
 
 func HandleServerHistory(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +45,7 @@ func HandleServerHistory(w http.ResponseWriter, r *http.Request) {
 	cutoff := time.Now().UTC().AddDate(0, 0, -days).Format(time.RFC3339)
 
 	rows, err := db.DB.Query(`
-		SELECT report_at, net_in, net_out, cpu_percent, mem_percent
+		SELECT report_at, net_in, net_out, cpu_percent, mem_percent, disk_percent
 		FROM traffic_snapshots
 		WHERE server_id = ? AND report_at >= ?
 		ORDER BY report_at ASC
@@ -58,7 +59,7 @@ func HandleServerHistory(w http.ResponseWriter, r *http.Request) {
 	var history []HistoryPoint
 	for rows.Next() {
 		var hp HistoryPoint
-		if err := rows.Scan(&hp.Date, &hp.BytesIn, &hp.BytesOut, &hp.AvgCPU, &hp.AvgMem); err != nil {
+		if err := rows.Scan(&hp.Date, &hp.BytesIn, &hp.BytesOut, &hp.AvgCPU, &hp.AvgMem, &hp.AvgDisk); err != nil {
 			continue
 		}
 		history = append(history, hp)

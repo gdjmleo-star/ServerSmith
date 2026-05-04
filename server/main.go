@@ -42,6 +42,7 @@ func main() {
 	mux.HandleFunc("/public/status", api.HandlePublicStatus)
 
 	// ── Protected routes (require JWT) ──
+	mux.HandleFunc("/api/servers/live-stats", api.RequireAuth(api.HandleLiveStats))
 	mux.HandleFunc("/api/servers", api.RequireAuth(api.HandleServers))
 	mux.HandleFunc("/api/servers/batch-reboot", api.RequireAuth(api.HandleBatchReboot))
 	mux.HandleFunc("/api/servers/", api.RequireAuth(func(w http.ResponseWriter, r *http.Request) {

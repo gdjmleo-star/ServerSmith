@@ -29,6 +29,8 @@ export interface Server {
   expire_notify_days: number | null;
   avg_cpu: number | null;
   avg_mem: number | null;
+  used_bytes_in: number;
+  used_bytes_out: number;
 }
 
 export interface ServerFormData {

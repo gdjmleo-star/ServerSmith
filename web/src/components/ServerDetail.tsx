@@ -8,6 +8,7 @@ import { Toast } from "@/components/Toast";
 import { formatUTCToBeijing, timeAgo } from "@/lib/timezone";
 import { useState } from "react";
 import { authFetch } from "@/hooks/useAuth";
+import { HealthPanel } from "@/components/HealthPanel";
 
 interface Props {
   server: Server;
@@ -119,6 +120,16 @@ export function ServerDetail({ server }: Props) {
           {row("到期时间", formatUTCToBeijing(server.expire_at))}
         </div>
       )}
+
+      {/* Health Panel */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+        <div className="px-4 py-2 border-b border-slate-700">
+          <span className="text-sm font-medium text-slate-400">健康状态 &amp; 24h 趋势</span>
+        </div>
+        <div className="p-4">
+          <HealthPanel serverId={server.id} />
+        </div>
+      </div>
 
       {/* Reboot Tasks */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">

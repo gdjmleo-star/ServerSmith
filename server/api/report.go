@@ -93,9 +93,9 @@ func HandleReport(w http.ResponseWriter, r *http.Request) {
 
 	// Insert new snapshot
 	_, err := db.DB.Exec(
-		`INSERT INTO traffic_snapshots (server_id, report_at, net_in, net_out, cpu_percent, mem_percent, disk_percent)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		serverID, now, req.NetIn, req.NetOut, req.CPUPercent, req.MemPercent, req.DiskPercent,
+		`INSERT INTO traffic_snapshots (server_id, report_at, net_in, net_out, cpu_percent, mem_percent, disk_percent, uptime_sec)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		serverID, now, req.NetIn, req.NetOut, req.CPUPercent, req.MemPercent, req.DiskPercent, req.UptimeSec,
 	)
 	if err != nil {
 		log.Printf("insert snapshot error: %v", err)
@@ -115,8 +115,12 @@ func HandleReport(w http.ResponseWriter, r *http.Request) {
 
 		if deltaBytes > 0 {
 			_, _ = db.DB.Exec(
-				"UPDATE server_plans SET used_bytes = used_bytes + ? WHERE server_id = ? AND plan_type = 'traffic'",
-				deltaBytes, serverID,
+				`UPDATE server_plans 
+				 SET used_bytes = used_bytes + ?,
+				     used_bytes_in = used_bytes_in + ?,
+				     used_bytes_out = used_bytes_out + ?
+				 WHERE server_id = ? AND plan_type = 'traffic'`,
+				deltaBytes, deltaIn, deltaOut, serverID,
 			)
 
 			var usedBytes int64
